@@ -1,56 +1,62 @@
-\# Electricity Load Forecasting
+# Electricity Load Forecasting
 
+A reproducible study of Belgian day-ahead electricity load forecasting on public
+Elia system data.
 
+Electricity demand is strongly periodic, but periodicity is not the same as
+predictability. This project asks how much of Belgian quarter-hourly load can be
+forecast one day ahead from temporal structure alone, and whether the resulting
+uncertainty estimates are statistically calibrated.
 
-A reproducible study of Belgian day-ahead electricity load forecasting using public Elia system data.
+## Approach
 
+Every result is required to survive an independent check before it is used.
+Point accuracy and probabilistic calibration are scored on their own samples,
+assumptions are stated where they are made, and a failing contract raises rather
+than being repaired silently. A negative result is reported as a result.
 
+## Current stage
 
-The first stage of the project audits Elia's operational day-ahead forecasts for 2023:
+**1. Audit of the operational forecast.** Before modelling anything, Elia's own
+published day-ahead forecast for 2023 is audited: bias, MAE and RMSE; empirical
+coverage of the P10-P90 band; interval width; pinball loss; and calibration by
+hour, month, day type and load level. Belgian civil time, the daylight-saving
+transitions and public holidays are handled explicitly.
 
+**2. Spectral analysis.** The realised load series is decomposed by
+periodogram. Peaks are located by prominence and only then read as periods, so
+the daily and weekly cycles are found rather than assumed. The result is
+cross-checked against an independent gap fill and against an unwindowed
+transform.
 
+## Repository
 
-\- realised total load versus day-ahead point forecasts;
+    notebooks/probabilistic_forecasting.ipynb   research narrative and data contracts
+    src/electricity_load_forecasting/           tested reusable core
+    tests/                                      pytest suite
+    figures/                                    generated figures
 
-\- P10-P90 uncertainty intervals;
+The notebook carries the argument and the dataset-specific contracts. General
+behaviour — civil-day length across DST, the holiday calendar, scoring rules,
+spectral estimation, the temporal-integrity guard — lives in the package and is
+tested there.
 
-\- bias, MAE and RMSE;
+## Running it
 
-\- empirical interval coverage and pinball loss;
+    pip install -e ".[dev]"
+    pytest
+    jupyter lab notebooks/probabilistic_forecasting.ipynb
 
-\- calibration by hour, month, day type and load level;
+The notebook pulls Elia `ods001` on first run and caches it under `cache/`,
+which is deliberately not committed: the data is reproducible from the source.
 
-\- explicit handling of Belgian civil time, daylight-saving transitions and public holidays.
+## Planned
 
+Transparent day-ahead benchmarks (previous day, previous week), a Fourier and
+calendar model, rolling-origin backtesting, and probabilistic forecasts scored
+for calibration and sharpness against the Elia reference.
 
+## Data source
 
-The analysis is designed as a reproducible research workflow. Data acquisition, integrity checks and modelling assumptions are made explicit in the notebook.
-
-
-
-Planned next steps include transparent benchmark models, spectral analysis, rolling-origin validation and probabilistic forecast calibration.
-
-
-
-\## Notebook
-
-
-
-`notebooks/probabilistic\_forecasting.ipynb`
-
-
-
-\## Data source
-
-
-
-Public Elia Open Data, dataset `ods001`.
-
-
-
-\## Status
-
-
-
-Work in progress.
-
+Public Elia Open Data, dataset `ods001` (measured and forecast total load,
+Belgian control zone).

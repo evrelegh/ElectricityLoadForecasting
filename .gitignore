@@ -1,4 +1,13 @@
+# data pulled from Elia — reproducible from the notebook, never committed
 cache/
-.ipynb_checkpoints/
+*.csv
+*.csv.gz
+
+# python
 __pycache__/
+*.egg-info/
 .venv/
+.pytest_cache/
+
+# notebooks
+.ipynb_checkpoints/
