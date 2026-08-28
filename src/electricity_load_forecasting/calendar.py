@@ -1,6 +1,7 @@
 # ══════════════════════════════════════════════════════════════════════════
-# calendar · Belgian civil time, DST-aware day length, public holidays v0.2.0
+# calendar · Belgian civil time, DST-aware day length, public holidays v0.3.0
 # provides ▸ easter · be_holidays · expected_slots · civil_features
+#            complete_civil_days
 # requires ▸ pandas
 # ══════════════════════════════════════════════════════════════════════════
 """Civil-time primitives.
@@ -88,3 +89,21 @@ def civil_features(utc_index: pd.Series, tz: str = TZ_BE) -> pd.DataFrame:
     f["is_weekend"] = f["dow"] >= 5
     f["is_holiday"] = f["civil_date"].isin(be_holidays(sorted(set(f["civil_date"].dt.year))))
     return f
+
+
+def complete_civil_days(frame: pd.DataFrame, start, end, tz: str = TZ_BE,
+                        freq: str = FREQ_QH, date_col: str = "civil_date"):
+    """Restrict `frame` to whole civil days inside [start, end].
+
+    A civil day is kept only when it holds exactly the number of slots the zone
+    implies. Partial days at the window edge are dropped rather than trimmed:
+    a lag across one would silently reuse the wrong clock time. Returns the
+    restricted frame and the dropped day lengths, so the caller can report
+    what went rather than discover it later.
+    """
+    f = frame[frame[date_col].between(pd.Timestamp(start), pd.Timestamp(end))].copy()
+    per_day = f.groupby(date_col).size()
+    exp = per_day.index.to_series().map(lambda d: expected_slots(d, tz, freq))
+    incomplete = per_day[per_day != exp]
+    f = f[~f[date_col].isin(incomplete.index)].reset_index(drop=True)
+    return f, incomplete

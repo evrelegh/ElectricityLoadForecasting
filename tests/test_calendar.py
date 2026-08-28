@@ -64,3 +64,26 @@ def test_fallback_day_repeats_a_quarter_of_day_but_not_a_utc_instant():
     assert idx.is_unique
     assert (f["qod"].value_counts() == 2).sum() == 4     # the repeated hour
     assert f["qod"].between(0, 95).all()
+
+
+def test_complete_civil_days_keeps_whole_days_and_reports_the_rest():
+    """Warm-up history and the analysis window use the same rule, so it lives
+    in one place: a partial day at the edge is dropped, not trimmed."""
+    from electricity_load_forecasting.calendar import complete_civil_days
+    idx = pd.Series(pd.date_range("2023-03-25 00:00Z", periods=96 * 4, freq="15min"))
+    f = pd.concat([pd.DataFrame({"datetime": idx}), civil_features(idx)], axis=1)
+    kept, dropped = complete_civil_days(f, "2023-03-25", "2023-03-28")
+    assert list(dropped.index) == [pd.Timestamp("2023-03-25")]     # starts at 01:00 civil
+    assert kept.groupby("civil_date").size().to_dict() == {
+        pd.Timestamp("2023-03-26"): 92,                            # DST day kept whole
+        pd.Timestamp("2023-03-27"): 96,
+        pd.Timestamp("2023-03-28"): 96,
+    }
+
+
+def test_complete_civil_days_does_not_discard_the_transition_days():
+    from electricity_load_forecasting.calendar import complete_civil_days
+    idx = pd.Series(pd.date_range("2023-10-28 00:00Z", periods=96 * 3, freq="15min"))
+    f = pd.concat([pd.DataFrame({"datetime": idx}), civil_features(idx)], axis=1)
+    kept, _ = complete_civil_days(f, "2023-10-29", "2023-10-29")
+    assert len(kept) == 100
