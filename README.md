@@ -2,6 +2,8 @@
 
 A reproducible study of probabilistic day-ahead electricity load forecasting for the Belgian power system, using public Elia data.
 
+**The complete point and probabilistic specification was frozen in a Git commit before any result from the confirmation period was scored, and evaluated unchanged on 1 February–31 December 2025.** Every headline comparison carries a cluster-robust uncertainty interval obtained by resampling whole Belgian civil days, and the negative results are reported rather than tuned away.
+
 ## Research question
 
 How much of Belgian quarter-hourly electricity demand can be predicted one day ahead from temporal structure and recent load information alone?
@@ -12,7 +14,7 @@ The project deliberately uses transparent statistical models rather than a large
 
 ## Forecasting setup
 
-Forecasts are made for every 15-minute period of the following Belgian civil day, using only information available by **18:00 Europe/Brussels on D−1**, matching the stated origin of Elia's published day-ahead forecast.
+Forecasts are made for every 15-minute period of the following Belgian civil day, using only information available by **18:00 Europe/Brussels on D−1**, matching the issue time given in the ODS001 field metadata, which labels the forecast column *Day-ahead 6PM forecast*.
 
 The modelling sequence is:
 
@@ -23,13 +25,25 @@ The modelling sequence is:
 
 Daylight-saving transitions, holidays, missing observations and forecast availability are handled explicitly.
 
+## Spectral structure of Belgian demand
+
+Before any model was fitted, the realised load series was decomposed by periodogram. Spectral peaks were located by prominence and only then read as periods, so the daily and weekly cycles were found in the data rather than assumed.
+
+![Spectral anatomy of Belgian electricity demand](figures/spectral_anatomy.png)
+
+The dominant resolved components are the 24-hour cycle (23.2% of resolved spectral density), a 7.02-day component (7.1%) and the 12-hour harmonic (5.5%). The weekly period appears at 7.02 rather than exactly 7 days because 365/7 is not an integer: the weekly cycle falls between frequency bins and its power is spread across neighbours. Three missing observations were filled to obtain the gapless uniform grid the transform requires. The selected component set was stable under an independent check that substituted the value one week earlier instead of interpolating. A second check, recomputing the spectrum without a Hann window, did not reproduce the same component set; that check is reported as not reproducing the result rather than as a successful confirmation. Such a difference is consistent with spectral leakage from periodic components that fall between frequency bins, but that is an interpretation of the discrepancy, not something the check established.
+
+The spectrum is a variance decomposition, not a statement about predictability. It motivated the harmonic *periods* used later, but not the harmonic *counts*, which were fixed a priori as the first four harmonics of the day and the first three of the week. Selecting frequencies from a spectrum estimated over the whole evaluation year would have leaked that year into the model specification.
+
 ## Untouched confirmation
 
 Model development used data before the final confirmation period.
 
 The complete point and probabilistic specification was then **frozen in Git before any untouched 2025 confirmation result was scored**. January 2025 had already been encountered during development and was therefore excluded from untouched claims.
 
-The frozen method was subsequently evaluated, unchanged, on **1 February–31 December 2025**.
+The frozen method was subsequently evaluated, unchanged, on **1 February–31 December 2025**: 334 civil days and 32,064 quarter-hour slots, including the 92-slot and 100-slot daylight-saving days.
+
+Point forecasts are scored on a common sample of **32,060 slots**. The four excluded slots are 02:00–02:45 civil time on 2025-04-06, where the D−7 benchmark has no source observation because its source day was the spring-forward transition, on which those civil times did not exist. Those four slots were removed from *every* model, so no model is scored on a larger sample than another.
 
 ### Point forecasts
 
@@ -49,11 +63,15 @@ This control is important. Adding recent-level information to D−7 improves MAE
 
 Elia's operational forecast nevertheless remained better. The frozen model's MAE was **13.6% higher**, with a 95% block-bootstrap interval of **5.9% to 21.5%**.
 
+Elia's operational forecast may draw on information that is unavailable to this deliberately load-history-only model. It is therefore used as an operational reference point rather than as a like-for-like competitor, and the comparison is best read as an indication of how much day-ahead predictability is reachable from the load history alone.
+
+Bootstrap intervals are reported for the ratios, which are the quantities being compared. The MAE levels in the table above are point estimates and carry no interval.
+
 ## Probabilistic forecasts
 
-The frozen empirical-residual P10–P90 forecasts produced:
+The frozen empirical-residual P10–P90 forecasts, evaluated on all 32,064 confirmation slots, produced:
 
-| Forecast | Coverage | Mean width (MW) | Mean pinball loss |
+| Forecast | Coverage | Mean width (MW) | Mean pinball loss (MW) |
 |---|---:|---:|---:|
 | Frozen empirical residuals | 0.765 | 941.9 | 74.19 |
 | Elia day-ahead | 0.758 | 836.1 | 66.09 |
@@ -119,6 +137,12 @@ Temporal integrity is treated as part of the model rather than as a cleanup step
 
 The non-circular moving-block bootstrap uses all consecutive seven-day blocks available within the confirmation period. Consequently, observations near the beginning and end of the period occur in fewer candidate blocks than observations in its interior. No post-confirmatory recalculation was made to remove this minor boundary effect.
 
+## Data provenance
+
+The historical Elia data were retrieved and cached during notebook execution. The confirmation pull covers 1 October 2024 to 31 December 2025, of which 1 February–31 December 2025 is the scored confirmation period and the remainder supplies the estimation and residual history the frozen procedure requires. The exact acquisition timestamp was not recorded and cannot be reconstructed after the fact.
+
+Elia revises historical load values. A subsequent retrieval may therefore produce figures that differ slightly from those reported here. The reported quantities are stable at the level of the conclusions drawn, but not to the last decimal.
+
 ## Repository
 
     notebooks/probabilistic_forecasting.ipynb   complete research narrative
@@ -137,6 +161,10 @@ jupyter lab notebooks/probabilistic_forecasting.ipynb
 ```
 
 The notebook retrieves Elia Open Data dataset `ods001` and caches source data locally under `cache/`; downloaded data are deliberately not committed.
+
+## Companion repository
+
+[ElectricityResourceAdequacy](https://github.com/evrelegh/ElectricityResourceAdequacy) studies Belgian generation adequacy (LOLE and EENS) on the same Elia and ENTSO-E data, using the Fourier transform for a different computational purpose: convolving independent random variables into an aggregate capacity distribution, rather than decomposing a time series into periodic components. It is offered as a related study of the same power system, not as methodological evidence for the forecasting results reported here.
 
 ## Data source
 
