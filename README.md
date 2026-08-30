@@ -2,6 +2,7 @@
 
 A reproducible study of probabilistic day-ahead electricity load forecasting for the Belgian power system, using public Elia data.
 
+
 **The complete point and probabilistic specification was frozen in a Git commit before any result from the confirmation period was scored, and evaluated unchanged on 1 February–31 December 2025.** Every headline comparison carries a cluster-robust uncertainty interval obtained by resampling whole Belgian civil days, and the negative results are reported rather than tuned away.
 
 ## Research question
@@ -11,6 +12,13 @@ How much of Belgian quarter-hourly electricity demand can be predicted one day a
 And once a point forecast has been made, how well can its uncertainty be quantified?
 
 The project deliberately uses transparent statistical models rather than a large forecasting model zoo. The objective is not to win a retrospective forecasting contest, but to determine what information is genuinely predictive under an operational information boundary.
+
+
+## Guided Tour
+
+For a concise, illustrated account of the research question, methodology,
+untouched confirmation and main findings, see the
+[Guided Tour](docs/ElectricityLoadForecasting_Guided_Tour.pdf).
 
 ## Forecasting setup
 
